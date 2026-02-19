@@ -25,7 +25,7 @@ TECH_FEED_KEYWORDS = {
     "open source",
 }
 
-GENERAL_NEWS_KEYWORDS = {
+NON_TECH_NEWS_KEYWORDS = {
     "news",
     "politics",
     "economy",
@@ -101,21 +101,21 @@ def _is_tech_item(item: dict) -> bool:
     return any(domain in text for domain in TECH_DOMAINS)
 
 
-def _is_general_news_item(item: dict) -> bool:
+def _is_non_tech_news_item(item: dict) -> bool:
     text = _item_text(item)
-    return any(keyword in text for keyword in GENERAL_NEWS_KEYWORDS)
+    return any(keyword in text for keyword in NON_TECH_NEWS_KEYWORDS)
 
 
 def categorize_items(items: list[dict]) -> dict[str, list[dict]]:
-    categorized = {"tech_news": [], "general_news": []}
+    categorized = {"tech_news": [], "non_tech_news": []}
 
     for item in items:
         if _is_tech_item(item):
             categorized["tech_news"].append(item)
-        elif _is_general_news_item(item):
-            categorized["general_news"].append(item)
+        elif _is_non_tech_news_item(item):
+            categorized["non_tech_news"].append(item)
         else:
-            categorized["general_news"].append(item)
+            categorized["non_tech_news"].append(item)
 
     return categorized
 
