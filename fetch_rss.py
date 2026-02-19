@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch RSS feed items from Readwise Reader API for the past 24 hours."""
+"""Fetch RSS feed items from Readwise Reader API and group into categories."""
 
 import json
 import os
@@ -8,6 +8,47 @@ import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
+
+TECH_FEED_KEYWORDS = {
+    "tech",
+    "technology",
+    "ai",
+    "artificial intelligence",
+    "software",
+    "programming",
+    "developer",
+    "engineering",
+    "startup",
+    "cybersecurity",
+    "cloud",
+    "data",
+    "open source",
+}
+
+NON_TECH_NEWS_KEYWORDS = {
+    "news",
+    "politics",
+    "economy",
+    "economic",
+    "business",
+    "finance",
+    "markets",
+    "world",
+    "policy",
+    "government",
+}
+
+TECH_DOMAINS = {
+    "techcrunch.com",
+    "theverge.com",
+    "wired.com",
+    "arstechnica.com",
+    "hackernews",
+    "venturebeat.com",
+    "engadget.com",
+    "thenextweb.com",
+    "github.blog",
+}
 
 
 def fetch_rss_items(token: str, hours: int = 24) -> list[dict]:
@@ -42,6 +83,43 @@ def fetch_rss_items(token: str, hours: int = 24) -> list[dict]:
     return all_results
 
 
+def _item_text(item: dict) -> str:
+    text_parts = [
+        item.get("title", ""),
+        item.get("site_name", ""),
+        item.get("summary", ""),
+        item.get("category", ""),
+        item.get("source_url", ""),
+    ]
+    return " ".join(part for part in text_parts if isinstance(part, str)).lower()
+
+
+def _is_tech_item(item: dict) -> bool:
+    text = _item_text(item)
+    if any(keyword in text for keyword in TECH_FEED_KEYWORDS):
+        return True
+    return any(domain in text for domain in TECH_DOMAINS)
+
+
+def _is_non_tech_news_item(item: dict) -> bool:
+    text = _item_text(item)
+    return any(keyword in text for keyword in NON_TECH_NEWS_KEYWORDS)
+
+
+def categorize_items(items: list[dict]) -> dict[str, list[dict]]:
+    categorized = {"tech_news": [], "non_tech_news": []}
+
+    for item in items:
+        if _is_tech_item(item):
+            categorized["tech_news"].append(item)
+        elif _is_non_tech_news_item(item):
+            categorized["non_tech_news"].append(item)
+        else:
+            categorized["non_tech_news"].append(item)
+
+    return categorized
+
+
 def main():
     token = os.environ.get("READWISE_TOKEN")
     if not token:
@@ -49,7 +127,8 @@ def main():
         sys.exit(1)
 
     items = fetch_rss_items(token)
-    print(json.dumps(items, ensure_ascii=False, indent=2))
+    categorized_items = categorize_items(items)
+    print(json.dumps(categorized_items, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
